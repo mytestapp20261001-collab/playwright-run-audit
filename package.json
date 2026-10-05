@@ -1,0 +1,15 @@
+{
+  "name": "playwright-run-audit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Offline completeness evidence for explicitly planned Playwright shards",
+  "license": "MIT",
+  "engines": {"node": ">=22"},
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "test:integration": "node integration/run.mjs",
+    "example": "node examples/two-shards.mjs"
+  },
+  "devDependencies": {"@playwright/test": "1.63.0"}
+}

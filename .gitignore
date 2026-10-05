@@ -1,0 +1,6 @@
+node_modules/
+.audit-example/
+.integration-output/
+test-results/
+.integration-output-*/
+.audit-example-*/
