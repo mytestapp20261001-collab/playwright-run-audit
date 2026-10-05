@@ -42,24 +42,30 @@ Prepare a plan before the run; use non-sensitive identifiers:
 
 The array is ordered: `one` maps to Playwright shard 1/2, `two` to 2/2. Use a separate run/environment plan for a different CI matrix variant, and increment the attempt for a whole-run retry. Never combine old and new run attempts.
 
-In shard one's existing Playwright config, append the reporter:
+Playwright resolves the reporter module path relative to its config file. This reporter's relative `planFile` and `outputFile` options instead use the directory where you **launch Playwright** (`process.cwd()`). The ESM example below makes those options absolute, anchored beside the config, so launching with `--config tests/playwright.config.mjs` from a parent directory does not change them. For other module formats, supply equivalent absolute paths.
+
+In shard one's existing ESM Playwright config, append the reporter. Put the plan and fresh receipt directory beside that config:
 
 ```js
+import { fileURLToPath } from 'node:url';
+
 export default {
   // Keep your existing test configuration.
   shard: { current: 1, total: 2 },
   reporter: [
     ['list'], // Keep your own existing reporters here.
     ['./path/to/playwright-run-audit/src/reporter.mjs', {
-      planFile: './audit-plan.json',
+      planFile: fileURLToPath(new URL('./audit-plan.json', import.meta.url)),
       shardId: 'one',
-      outputFile: './fresh-receipts/one.jsonl'
+      outputFile: fileURLToPath(new URL('./fresh-receipts/one.jsonl', import.meta.url))
     }]
   ]
 };
 ```
 
 Create a new, empty `fresh-receipts/` directory for each invocation. Never reuse the same run ID + attempt for a second invocation; a prior receipt cannot identify a new launch. Configure shard two with `current: 2`, `shardId: 'two'`, and a different output file. Do not use `--reporter` to override this configuration. The reporter rejects existing outputs and mismatched shard counts/positions, and supports exactly Playwright **1.62.0 and 1.63.0**. Other versions fail closed until tested and added. Integration tests use the real runner and public Reporter/TestCase APIs; no browser installation is needed.
+
+If ordinary test output says the tests passed but the process exits 1 and no receipt appears, do not count that as a successful audit. Reporter setup failures can be silent; first check the plan/output path bases and that the fresh output directory exists, then inspect the runner status and audit verdict.
 
 Transfer all receipts, including `.partial` files, into a dedicated local directory. Retain the independently prepared plan. The tool does not download CI artifacts, run untrusted tests, or discover browser profiles for you.
 
