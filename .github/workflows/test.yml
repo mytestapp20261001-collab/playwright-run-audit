@@ -1,0 +1,36 @@
+name: Audit regression and Playwright integration
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    name: Node ${{ matrix.node }} / Playwright ${{ matrix.playwright }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['22.0.0', '24.19.0']
+        playwright: ['1.62.0', '1.63.0']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node }}
+          package-manager-cache: false
+      - name: Record runtime and commit
+        run: |
+          node --version
+          git rev-parse HEAD
+      - run: node --test test/*.test.mjs
+      - name: Install only official Playwright dev integration dependency
+        run: npm install --ignore-scripts --no-audit --no-fund --no-save --package-lock=false @playwright/test@${{ matrix.playwright }}
+      - run: node integration/run.mjs
+      - run: node examples/two-shards.mjs
+      - name: Verify tracked source unchanged
+        run: git diff --exit-code
